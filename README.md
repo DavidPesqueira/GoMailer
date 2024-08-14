@@ -15,13 +15,8 @@ A simple Go script for sending emails with attachments and inline images.
 
 ## Installation 
 
-Clone the repository:
-   ```sh
-   git clone https://github.com/yourusername/go-email-sender.git
-   cd go-email-sender
-   Install dependencies: 
-   sh
-
+Clone the repository
+Setup.sh
 go mod tidy
 
 Create a config.ini file with your SMTP server credentials. The file should include: 
