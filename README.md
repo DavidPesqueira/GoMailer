@@ -47,7 +47,7 @@ username=your-username
 password=your-app-password
 ```
 
-`config.ini` is gitignored — never commit real credentials. Use `config.ini.example` as a template for what to fill in.
+`config.ini` is gitignore — never commit real credentials. Use `config.ini.example` as a template for what to fill in.
 
 > **Note on credentials:** Most providers will **not** accept your normal account password here. You'll need a provider-issued **app password** or **SMTP key**:
 > - **Brevo** — server is `smtp-relay.brevo.com`, port `587`. Username is your Brevo login email (or the assigned `xxxxxxx@smtp-brevo.com` address), password is the **SMTP key** generated under *SMTP & API → SMTP* in the dashboard.
