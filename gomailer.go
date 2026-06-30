@@ -158,75 +158,6 @@ func promptYesNo(question string) string {
 	}
 }
 
-// parseDMARCPolicy pulls the p= tag out of a DMARC record.
-func parseDMARCPolicy(record string) string {
-	for _, part := range strings.Split(record, ";") {
-		part = strings.TrimSpace(part)
-		if strings.HasPrefix(part, "p=") {
-			return strings.TrimPrefix(part, "p=")
-		}
-	}
-	return "unknown"
-}
-
-// checkDomain reports SPF / DMARC / MX posture for a target domain so you can
-// decide between exact-domain spoof, cousin domain, or display-name spoof.
-func checkDomain(domain string) {
-	fmt.Printf("\n=== Recon: %s ===\n", domain)
-
-	// MX
-	mxs, err := net.LookupMX(domain)
-	if err != nil || len(mxs) == 0 {
-		fmt.Printf("MX:    none found (%v)\n", err)
-	} else {
-		fmt.Println("MX:")
-		for _, mx := range mxs {
-			fmt.Printf("       %3d  %s\n", mx.Pref, strings.TrimSuffix(mx.Host, "."))
-		}
-	}
-
-	// SPF
-	spf := ""
-	if txts, _ := net.LookupTXT(domain); txts != nil {
-		for _, t := range txts {
-			if strings.HasPrefix(strings.ToLower(t), "v=spf1") {
-				spf = t
-			}
-		}
-	}
-	if spf == "" {
-		fmt.Println("SPF:   none")
-	} else {
-		fmt.Printf("SPF:   %s\n", spf)
-	}
-
-	// DMARC
-	dmarc := ""
-	if dtxts, _ := net.LookupTXT("_dmarc." + domain); dtxts != nil {
-		for _, t := range dtxts {
-			if strings.HasPrefix(strings.ToLower(t), "v=dmarc1") {
-				dmarc = t
-			}
-		}
-	}
-	if dmarc == "" {
-		fmt.Println("DMARC: none  --> exact-domain spoofing likely VIABLE (no policy published)")
-	} else {
-		fmt.Printf("DMARC: %s\n", dmarc)
-		switch strings.ToLower(parseDMARCPolicy(dmarc)) {
-		case "reject":
-			fmt.Println("       p=reject     --> exact-domain spoof will be REJECTED. Use cousin domain / display-name.")
-		case "quarantine":
-			fmt.Println("       p=quarantine --> exact-domain spoof lands in JUNK. Cousin domain recommended.")
-		case "none":
-			fmt.Println("       p=none       --> monitored only; exact-domain spoof likely lands in INBOX.")
-		default:
-			fmt.Println("       (could not parse policy tag)")
-		}
-	}
-	fmt.Println()
-}
-
 // deliver speaks SMTP directly to one MX host. No auth — envelope and headers
 // are whatever you pass in.
 func deliver(host, envelopeFrom, heloName string, recipients []string, msg []byte) error {
@@ -315,10 +246,10 @@ func main() {
 
 	// Recon-only and exit.
 	if *checkFlag != "" {
-		checkDomain(*checkFlag)
+		posture := checkDomainPosture(*checkFlag)
+		printPosture(posture)
 		return
 	}
-
 	fmt.Println(asciiArt)
 	fmt.Println(headerArt)
 
@@ -438,7 +369,8 @@ func main() {
 	if *directFlag {
 		// Recon the target first so you know what you're walking into.
 		if at := strings.LastIndex(toEmail, "@"); at >= 0 {
-			checkDomain(toEmail[at+1:])
+			posture := checkDomainPosture(toEmail[at+1:])
+			printPosture(posture)
 		}
 
 		// Envelope sender (MAIL FROM / Return-Path) can differ from the header From.
