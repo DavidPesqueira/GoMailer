@@ -2,7 +2,7 @@
 
 CLI email tool inspired by Kali Linux's `sendEmail`.
 
-![GoMailer](/gomail.jpg)
+![GoMailer](/GoMailer.webp)
 
 A simple Go tool for sending emails with custom headers, attachments, and inline images — useful for authorized phishing simulations and red team engagements. Includes a built-in domain authentication posture checker (`--check`) to assess SPF/DKIM/DMARC configuration before an engagement.
 
