@@ -1,13 +1,14 @@
 package main
+
 import (
 	"fmt"
 	"net"
-	"os"
 	"strings"
 )
 
 type DomainPosture struct {
 	Domain      string
+	MXRecords   []*net.MX
 	SPFRecord   string
 	SPFFound    bool
 	DKIMHints   []string
@@ -23,6 +24,10 @@ var commonDKIMSelectors = []string{
 
 func checkDomainPosture(domain string) DomainPosture {
 	p := DomainPosture{Domain: domain}
+
+	if mxs, err := net.LookupMX(domain); err == nil {
+		p.MXRecords = mxs
+	}
 
 	txtRecords, _ := net.LookupTXT(domain)
 	for _, r := range txtRecords {
@@ -94,6 +99,15 @@ func printPosture(p DomainPosture) {
 	fmt.Printf("Domain authentication posture: %s\n", p.Domain)
 	fmt.Println(strings.Repeat("=", 60))
 
+	fmt.Println("\n[MX]")
+	if len(p.MXRecords) > 0 {
+		for _, mx := range p.MXRecords {
+			fmt.Printf("  %3d  %s\n", mx.Pref, strings.TrimSuffix(mx.Host, "."))
+		}
+	} else {
+		fmt.Println("No MX records found.")
+	}
+
 	fmt.Println("\n[SPF]")
 	if p.SPFFound {
 		fmt.Println(p.SPFRecord)
@@ -119,14 +133,4 @@ func printPosture(p DomainPosture) {
 	fmt.Println("\n[Verdict]")
 	fmt.Println(p.verdict())
 	fmt.Println()
-}
-
-func runCheckMode() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: gomailer --check <domain>")
-		os.Exit(1)
-	}
-	domain := strings.TrimSpace(os.Args[2])
-	posture := checkDomainPosture(domain)
-	printPosture(posture)
 }
